@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MyKost</title>
+
+<style>
+:root{--bg:#f6f8f8;--card:#fff;--tx:#17302f;--mu:#5b7170;--pr:#0f766e;--prt:#fff;--bd:#d9e3e2;--ok:#15803d;--wa:#b45309;--er:#b91c1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1818;--card:#162423;--tx:#e6f1f0;--mu:#97b0ae;--pr:#2dd4bf;--prt:#07211f;--bd:#274240;--ok:#4ade80;--wa:#fbbf24;--er:#f87171}}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 20px;background:var(--card);border-bottom:1px solid var(--bd)}
+.brand{font-size:1.4rem;font-weight:800;color:var(--pr);letter-spacing:-.5px}
+nav button{background:none;border:0;color:var(--mu);font:inherit;padding:8px 12px;cursor:pointer;border-radius:8px}
+nav button.on{color:var(--prt);background:var(--pr)}
+main{max-width:1000px;margin:0 auto;padding:20px}
+.hero{padding:28px 0 8px}.hero h1{margin:0 0 6px;font-size:1.9rem}.hero p{margin:0;color:var(--mu)}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mu);gap:4px}
+input,select,textarea{font:inherit;padding:9px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.card h3{margin:0}.mu{color:var(--mu);font-size:.9rem}.price{font-size:1.15rem;font-weight:700}
+.badge{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 9px;border-radius:99px;border:1px solid currentColor}
+.Available{color:var(--ok)}.Reserved{color:var(--wa)}.Occupied{color:var(--er)}.Maintenance{color:var(--mu)}
+.Pending{color:var(--wa)}.InProgress{color:var(--pr)}.Resolved{color:var(--ok)}.Approved{color:var(--ok)}.Rejected{color:var(--er)}
+button.pr,button.sc{font:inherit;font-weight:600;padding:9px 14px;border-radius:8px;cursor:pointer;border:1px solid var(--pr)}
+button.pr{background:var(--pr);color:var(--prt)}button.sc{background:none;color:var(--pr)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:14px 0}
+.stat{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}.stat b{font-size:1.6rem;display:block}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);max-width:460px;width:calc(100% - 28px);padding:20px}
+dialog::backdrop{background:#0008}#authDialog{max-height:calc(100dvh - 40px);overflow-y:auto}#registrationFields label{margin-bottom:12px}button:focus-visible,a:focus-visible{outline:3px solid var(--pr);outline-offset:3px}form{display:flex;flex-direction:column;gap:12px}
+.note{background:var(--card);border:1px dashed var(--bd);border-radius:10px;padding:10px 12px;color:var(--mu);font-size:.88rem;margin:10px 0}
+.msg{margin:10px 0;font-weight:600}.hide{display:none}
+.tbl{overflow-x:auto}
+footer{text-align:center;color:var(--mu);font-size:.85rem;padding:30px 0}
+</style></head><body>
+<header><div class="brand">MyKost</div>
+<nav><button id="accountButton">Sign in / Register</button><button id="logoutButton" class="hide">Sign out</button><a href="/manager/" style="color:var(--pr);padding:8px 12px">Dashboard Manager</a><button id="tRooms" class="on">Rooms</button><button id="tRules">House rules</button><button id="tComp">Complaints</button><button id="tMgr" class="hide">Manager</button></nav></header>
+<main><p id="serviceMessage" role="status" class="msg"></p>
+<section id="vRooms">
+ <div class="hero"><h1>Find your room</h1><p>Browse available rooms and send a booking request.</p></div>
+ <div class="note">Rooms, prices, and rules below are development placeholders until the owner supplies real data.</div>
+ <div class="filters">
+  <label>Max price (Rp)<input id="fPrice" type="number" step="100000" placeholder="any"></label>
+  <label>Floor<select id="fFloor"><option value="">All</option></select></label>
+  <label>Bathroom<select id="fBath"><option value="">Any</option><option>Indoor</option><option>Outdoor</option></select></label>
+  <label>Show<select id="fAvail"><option value="1">Available only</option><option value="">All rooms</option></select></label>
+ </div>
+ <div id="grid" class="grid"></div>
+</section>
+<section id="vRules" class="hide">
+ <div class="hero"><h1>House rules</h1></div><ol id="rules"></ol>
+</section>
+<section id="vComp" class="hide"><div class="hero"><h1>Complaints</h1><p>Report a problem and the Manager will follow up. Sign in to MyKost to send one.</p></div><form id="cf" class="card"><label>Category<select id="cCat" required></select></label><label>Room (optional)<select id="cRoom"><option value="">Not sure</option></select></label><label>Description (optional)<textarea id="cDesc" rows="3" maxlength="500"></textarea></label><div id="cMsg" class="msg"></div><div><button class="pr" type="submit">Send complaint</button></div></form><h2>My complaints</h2><div id="cMine"></div></section>
+<section id="vMgr" class="hide">
+ <div class="hero"><h1>Manager dashboard</h1></div>
+ <div id="stats" class="stats"></div>
+ <h2>Booking requests</h2><div id="books"></div>
+ <h2>Rooms</h2><div id="mrooms" class="tbl"></div>
+ <h2>Complaints</h2><div id="mcomp"></div>
+</section>
+</main>
+<footer>MyKost &middot; Your home, well managed</footer>
+
+<dialog id="authDialog" aria-labelledby="authTitle"><form id="authForm">
+<div class="brand">MyKost</div><h2 id="authTitle">Welcome back</h2><p class="mu">Your MyKost account. No external login needed.</p>
+<label>Username<input name="username" autocomplete="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_]{3,32}" placeholder="Your username"></label>
+<label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label>
+<div id="registrationFields" class="hide">
+<label>Full name<input name="name" maxlength="80" autocomplete="name"></label>
+<label>Email<input name="email" type="email" maxlength="254" autocomplete="email"></label>
+<label>Phone / WhatsApp<input name="phone" minlength="5" maxlength="30" autocomplete="tel"></label>
+<label>Register as<select name="role"><option value="Tenant">Tenant</option><option value="Manager">Manager</option></select></label>
+<p class="mu">Manager accounts get access to this kost’s bookings and complaints immediately.</p></div>
+<p id="authError" role="alert" class="msg"></p><button class="pr" id="authSubmit">Sign in</button>
+<button type="button" class="sc" id="authToggle">New here? Create an account</button><button type="button" class="sc" id="authClose">Close</button>
+</form></dialog>
+<dialog id="dlg"><form id="bf">
+ <h3 id="dT">Book room</h3>
+ <label>Full name<input id="bName" required maxlength="80"></label>
+ <label>Email<input id="bEmail" type="email" required></label>
+ <label>Phone / WhatsApp<input id="bPhone" required maxlength="20"></label>
+ <label>Planned move-in date<input id="bDate" type="date" required></label>
+ <label style="flex-direction:row;align-items:flex-start;gap:8px;color:var(--tx)"><input id="bRule" type="checkbox" required style="margin-top:4px"><span>I have read and accept the house rules (version <span id="rv"></span>).</span></label>
+ <div id="bMsg" class="msg"></div>
+ <div class="row"><button class="pr" type="submit">Send request</button><button class="sc" type="button" id="bCancel">Close</button></div>
+</form></dialog>
+
+<script>
+var RULES_VERSION=1;
+var RULES=["Quiet hours from 22:00 to 06:00.","Overnight guests require Manager approval; ordinary visits do not.","Rent is invoiced every 30 days; payment is full-amount manual bank transfer.","Keep shared areas clean and report damage via the Complaints form.","The deposit is refundable on normal exit, subject to room condition."];
+var ROOMS=[
+{id:"r101",no:"101",floor:1,price:1200000,dep:600000,size:"3 x 3 m",bath:"Outdoor",ac:false,note:"Compact room, shared kitchen on the floor."},
+{id:"r102",no:"102",floor:1,price:1500000,dep:750000,size:"3 x 4 m",bath:"Indoor",ac:false,note:"Indoor bathroom, window to the garden."},
+{id:"r201",no:"201",floor:2,price:1800000,dep:900000,size:"3 x 4 m",bath:"Indoor",ac:true,note:"Air conditioning and water heater."},
+{id:"r202",no:"202",floor:2,price:1800000,dep:900000,size:"3 x 4 m",bath:"Indoor",ac:true,note:"Corner room, extra window."},
+{id:"r301",no:"301",floor:3,price:2200000,dep:1100000,size:"4 x 4 m",bath:"Indoor",ac:true,note:"Largest room, balcony access."},
+{id:"r302",no:"302",floor:3,price:1400000,dep:700000,size:"3 x 3 m",bath:"Outdoor",ac:false,note:"Quiet top-floor room."}];
+var $=function(i){return document.getElementById(i)};
+var rp=function(n){return "Rp"+n.toLocaleString("id-ID")};
+var esc=function(s){var d=document.createElement("div");d.textContent=s==null?"":String(s);return d.innerHTML};
+var uid=null,isMgr=false,status={},books=[],pick=null,account=null;
+
+function st(id){return status[id]||"Available"}
+function view(n){["Rooms","Rules","Comp","Mgr"].forEach(function(k){$("v"+k).classList.toggle("hide",k!==n);$("t"+k).classList.toggle("on",k===n)})}
+$("tRooms").onclick=function(){view("Rooms")};$("tRules").onclick=function(){view("Rules")};$("tComp").onclick=function(){view("Comp")};$("tMgr").onclick=function(){view("Mgr");renderMgr()};
+
+[1,2,3].forEach(function(f){var o=document.createElement("option");o.value=f;o.textContent="Floor "+f;$("fFloor").appendChild(o)});
+$("rules").innerHTML=RULES.map(function(r){return "<li>"+esc(r)+"</li>"}).join("");
+$("rv").textContent=RULES_VERSION;
+["fPrice","fFloor","fBath","fAvail"].forEach(function(i){$(i).oninput=renderRooms});
+
+function renderRooms(){
+ var mp=+$("fPrice").value||1e12,fl=$("fFloor").value,ba=$("fBath").value,av=$("fAvail").value;
+ var list=ROOMS.filter(function(r){return r.price<=mp&&(!fl||r.floor==fl)&&(!ba||r.bath==ba)&&(!av||st(r.id)=="Available")});
+ $("grid").innerHTML=list.length?list.map(function(r){var s=st(r.id);
+  return '<div class="card"><div class="row" style="justify-content:space-between"><h3>Room '+esc(r.no)+'</h3><span class="badge '+s+'">'+s+'</span></div>'+
+  '<div class="mu">Floor '+r.floor+' &middot; '+esc(r.size)+' &middot; '+r.bath+' bathroom'+(r.ac?' &middot; AC':'')+'</div>'+
+  '<div class="price">'+rp(r.price)+' <span class="mu">/ 30 days</span></div><div class="mu">Deposit '+rp(r.dep)+'</div><div class="mu">'+esc(r.note)+'</div>'+
+  '<div><button class="pr" data-b="'+r.id+'"'+(s!="Available"?" disabled":"")+'>Book this room</button></div></div>'}).join(""):'<p class="mu">No rooms match your filters.</p>';
+ Array.prototype.forEach.call(document.querySelectorAll("[data-b]"),function(b){b.onclick=function(){openBook(b.dataset.b)}});
+}
+function openBook(id){if(!uid){$("authDialog").showModal();return}pick=ROOMS.filter(function(r){return r.id==id})[0];$("dT").textContent="Book room "+pick.no;$("bMsg").textContent="";$("bf").reset();
+ var d=new Date();d.setDate(d.getDate()+1);$("bDate").min=d.toISOString().slice(0,10);$("dlg").showModal()}
+$("bCancel").onclick=function(){$("dlg").close()};
+$("bf").onsubmit=async function(e){e.preventDefault();var m=$("bMsg");
+ if(!uid){m.textContent="Sign in to MyKost before booking.";return}
+ var submit=e.submitter;submit.disabled=true;
+ try{await mutate({action:"booking",roomId:pick.id,name:$("bName").value.trim(),email:$("bEmail").value.trim(),phone:$("bPhone").value.trim(),moveIn:$("bDate").value,rulesAccepted:$("bRule").checked});m.style.color="var(--ok)";m.textContent="Request saved! The Manager will review it. The room is not reserved until approved."}
+ catch(x){m.style.color="var(--er)";m.textContent=x.message}finally{submit.disabled=false}};
+
+function renderMgr(){
+ if(!isMgr)return;renderMC();
+ var c={Available:0,Reserved:0,Occupied:0,Maintenance:0};ROOMS.forEach(function(r){c[st(r.id)]++});
+ var pend=books.filter(function(b){return b.status=="Pending"}).length;
+ $("stats").innerHTML=Object.keys(c).map(function(k){return '<div class="stat"><b>'+c[k]+'</b><span class="badge '+k+'">'+k+'</span></div>'}).join("")+'<div class="stat"><b>'+pend+'</b>Pending requests</div>';
+ $("books").innerHTML=books.length?books.map(function(b){
+  return '<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><b>'+esc(b.name)+' &rarr; Room '+esc(b.roomNo)+'</b><span class="badge '+b.status+'">'+b.status+'</span></div>'+
+  '<div class="mu">'+esc(b.email)+' &middot; '+esc(b.phone)+' &middot; move-in '+esc(b.moveIn)+' &middot; rules v'+esc(b.rulesVersion)+'</div>'+
+  (b.status=="Approved"?'<div class="mu">Payment proof due by '+new Date(b.deadline).toLocaleString()+'</div>':'')+
+  (b.reason?'<div class="mu">Reason: '+esc(b.reason)+'</div>':'')+
+  (b.status=="Pending"?'<div class="row"><button class="pr" data-a="'+b.id+'">Approve</button><button class="sc" data-r="'+b.id+'">Reject</button></div>':'')+'</div>'}).join(""):'<p class="mu">No booking requests yet.</p>';
+ $("mrooms").innerHTML='<table style="width:100%;border-collapse:collapse">'+ROOMS.map(function(r){var s=st(r.id);
+  return '<tr style="border-bottom:1px solid var(--bd)"><td style="padding:8px">Room '+r.no+'</td><td>'+rp(r.price)+'</td><td><select data-s="'+r.id+'">'+(s==="Reserved"||s==="Occupied"?[s]:["Available","Maintenance"]).map(function(o){return '<option'+(o==s?' selected':'')+'>'+o+'</option>'}).join("")+'</select></td></tr>'}).join("")+'</table>';
+ Array.prototype.forEach.call(document.querySelectorAll("[data-a]"),function(b){b.onclick=function(){approve(b.dataset.a)}});
+ Array.prototype.forEach.call(document.querySelectorAll("[data-r]"),function(b){b.onclick=function(){reject(b.dataset.r)}});
+ Array.prototype.forEach.call(document.querySelectorAll("[data-s]"),function(s){s.onchange=function(){mutate({action:"room",id:s.dataset.s,status:s.value}).catch(showError)}});
+}
+async function approve(id){try{await mutate({action:"approve",id:id})}catch(e){showError(e)}}
+async function reject(id){var reason=prompt("Reason for rejection (required):");if(!reason||!reason.trim())return;try{await mutate({action:"reject",id:id,reason:reason.trim()})}catch(e){showError(e)}}
+
+renderRooms();
+var CATS=["Electricity","AC","Insects/Pests","Furniture","Laundry","Leak","Wall Paint","Wi-Fi","Pipes","Other"],mine=[],allC={};
+CATS.forEach(function(c){var o=document.createElement("option");o.textContent=c;$("cCat").appendChild(o)});
+ROOMS.forEach(function(r){var o=document.createElement("option");o.value=r.no;o.textContent="Room "+r.no;$("cRoom").appendChild(o)});
+function renderMine(){$("cMine").innerHTML=mine.length?mine.slice().reverse().map(function(c){return '<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><b>'+esc(c.category)+(c.roomNo?' \u00b7 Room '+esc(c.roomNo):'')+'</b><span class="badge '+c.status+'">'+c.status+'</span></div><div class="mu">'+esc(c.description||'No description')+'</div><div class="mu">'+new Date(c.createdAt).toLocaleString()+'</div></div>'}).join(''):'<p class="mu">You have not sent any complaints.</p>'}
+function renderMC(){var all=[];Object.keys(allC).forEach(function(u){(allC[u]||[]).forEach(function(c){all.push({u:u,c:c})})});all.sort(function(a,b){return a.c.createdAt<b.c.createdAt?1:-1});
+ $("mcomp").innerHTML=all.length?all.map(function(x){var c=x.c;return '<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><b>'+esc(c.category)+(c.roomNo?' \u00b7 Room '+esc(c.roomNo):'')+' \u00b7 '+esc(c.name||'')+'</b><select data-cu="'+x.u+'" data-ci="'+c.id+'">'+['Pending','InProgress','Resolved'].map(function(s){return '<option'+(s==c.status?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div><div class="mu">'+esc(c.description||'No description')+'</div><div class="mu">'+new Date(c.createdAt).toLocaleString()+'</div></div>'}).join(''):'<p class="mu">No complaints yet.</p>';
+ Array.prototype.forEach.call(document.querySelectorAll('[data-cu]'),function(s){s.onchange=function(){mutate({action:"complaintStatus",id:s.dataset.ci,status:s.value}).catch(showError)}})}
+$("cf").onsubmit=async function(e){e.preventDefault();var m=$("cMsg");
+ if(!uid){m.textContent="Sign in to MyKost to send a complaint.";$("authDialog").showModal();return}
+ var submit=e.submitter;submit.disabled=true;
+ try{await mutate({action:"complaint",category:$("cCat").value,roomNo:$("cRoom").value,description:$("cDesc").value.trim()});$("cf").reset();m.style.color="var(--ok)";m.textContent="Complaint saved. It is now visible in the manager dashboard."}
+ catch(x){m.style.color="var(--er)";m.textContent=x.message}finally{submit.disabled=false}};
+async function request(path,data){var r=await fetch(path,{method:data?'POST':'GET',credentials:'same-origin',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});var body=await r.json();if(!r.ok)throw new Error(body.error||'Service unavailable.');return body}
+function showError(e){$("serviceMessage").textContent=e.message}
+async function loadData(){var data=await request('/api/catalog');status={};data.rooms.forEach(function(r){status[r.id]=r.status});books=data.bookings;mine=data.complaints.filter(function(c){return c.userId===uid});allC={};if(isMgr)data.complaints.forEach(function(c){(allC[c.userId]||(allC[c.userId]=[])).push(c)});renderRooms();renderMine();renderMgr()}
+async function mutate(data){await request('/api/catalog',data);await loadData()}
+async function loadSession(){var result=await request('/api/auth/session');account=result.user;uid=account&&account.id;isMgr=!!(account&&account.roles.some(function(r){return r==='Manager'||r==='SuperAdmin'}));$("tMgr").classList.toggle('hide',!isMgr);$("logoutButton").classList.toggle('hide',!uid);$("accountButton").textContent=account?account.name+' · '+account.role:'Sign in / Register';if(!isMgr&&$("tMgr").classList.contains('on'))view('Rooms');await loadData()}
+var registering=false;
+$("accountButton").onclick=function(){$("authDialog").showModal()};
+$("authClose").onclick=function(){$("authDialog").close()};
+$("authToggle").onclick=function(){registering=!registering;$("registrationFields").classList.toggle('hide',!registering);$("authTitle").textContent=registering?'Make yourself at home':'Welcome back';$("authSubmit").textContent=registering?'Create account':'Sign in';$("authToggle").textContent=registering?'Already registered? Sign in':'New here? Create an account';['name','email','phone'].forEach(function(n){$("authForm").elements[n].required=registering});var p=$("authForm").elements.password;p.minLength=registering?12:1;p.autocomplete=registering?'new-password':'current-password';$("authError").textContent=''};
+$("authForm").onsubmit=async function(e){e.preventDefault();var form=e.currentTarget;$("authSubmit").disabled=true;$("authError").textContent='';try{var values=Object.fromEntries(new FormData(form));await request('/api/auth/'+(registering?'register':'login'),values);form.reset();$("authDialog").close();await loadSession();if(new URLSearchParams(location.search).get('next')==='manager'&&isMgr)location.href='/manager/'}catch(x){$("authError").textContent=x.message}finally{$("authSubmit").disabled=false}};
+$("logoutButton").onclick=async function(){try{await request('/api/auth/logout',{});await loadSession()}catch(e){showError(e)}};
+renderMine();loadSession().catch(showError);
+if(location.hash==="#manager")view("Mgr");
+if(new URLSearchParams(location.search).has('auth'))$("authDialog").showModal();
+</script></body></html>

@@ -1,0 +1,11 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { managerAccess, methodGuard } from '../server/access.ts';
+import type { User } from '../server/access.ts';
+const user = (roles: string[], extra = {}): User => ({ id: 'test', roles, ...extra });
+test('anonymous cannot access manager resources', () => assert.equal(managerAccess(null)?.status, 401));
+test('tenant and missing role are denied', () => { for (const roles of [[], ['Tenant'], ['manager']]) assert.equal(managerAccess(user(roles))?.status, 403); });
+test('user-editable metadata cannot grant access', () => assert.equal(managerAccess(user([], { userMetadata: { roles: ['SuperAdmin'] } }))?.status, 403));
+test('Manager and SuperAdmin pass the role gate', () => { for (const role of ['Manager', 'SuperAdmin']) assert.equal(managerAccess(user([role])), null); });
+test('disabled account is denied despite privileged role', () => assert.equal(managerAccess(user(['Manager'], { appMetadata: { is_active: false } }))?.status, 403));
+test('unsupported method is rejected', () => assert.equal(methodGuard(new Request('https://example.test/api/me', { method: 'POST' }))?.status, 405));
